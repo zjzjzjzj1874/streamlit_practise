@@ -1,9 +1,12 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
+import time
+
 import altair as alt
 import folium
+import numpy as np
+import pandas as pd
+import streamlit as st
 from streamlit_folium import folium_static
+
 
 def create_map():
     # 创建地图
@@ -27,6 +30,8 @@ def create_map():
         ).add_to(m)
 
     return m
+
+
 # markdown
 st.markdown('Streamlit Demo')
 
@@ -123,3 +128,33 @@ st.altair_chart(alt.Chart(df, height=700, width=700)
     color=alt.Color("idx", legend=None, scale=alt.Scale()),
     size=alt.Size("rand", legend=None, scale=alt.Scale(range=[1, 150])),
 ))
+
+st.header("9. 魔术方法")
+# Draw a title and some text to the app:
+'''
+# This is the document title
+
+This is some _markdown_.
+'''
+
+df = pd.DataFrame({'col1': [1, 2, 3]})
+df  # <-- Draw the dataframe
+
+x = 10
+'x', x  # <-- Draw the string 'x' and then the value of x
+
+
+st.header("10. 引入进度条")
+'Starting a long computation...'
+
+# Add a placeholder
+latest_iteration = st.empty()
+bar = st.progress(0)
+
+for i in range(100):
+    # Update the progress bar with each iteration.
+    latest_iteration.text(f'Iteration {i+1}')
+    bar.progress(i + 1)
+    time.sleep(0.1)
+
+'...and now we\'re done!'
