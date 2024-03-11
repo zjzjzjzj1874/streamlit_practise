@@ -1,4 +1,3 @@
-import time
 
 import altair as alt
 import folium
@@ -6,18 +5,25 @@ import numpy as np
 import pandas as pd
 import streamlit as st
 from streamlit_folium import folium_static
-
-
+from pymongo import MongoClient
+from datetime import datetime, timedelta
+from enums import AccountType
+from enums import BillType
+from enums import categories
 def create_map():
     # 创建地图
     m = folium.Map(location=[39.9042, 116.4074], zoom_start=5)
 
-    # 添加坐标点和地理位置信息
+    # 添加坐标点和地理位置信息 TODO 定义Schema，然后for range传入
     locations = {
-        'City': ['北京', '成都', '重庆', '凤凰古城', '哈尔滨', '雪乡'],
-        'Latitude': [39.9042, 30.5728, 29.4316, 27.9483, 45.757, 45.2751],
-        'Longitude': [116.4074, 104.0668, 106.9123, 109.5996, 126.652, 126.9744],
-        'Info': ['北京天安门', '成都宽窄巷子', '重庆洪崖洞', '凤凰古城', '哈尔滨', '雪乡']
+        'City': ['北京', '成都', '重庆', '凤凰', '哈尔滨', '牡丹江', '天津', '厦门', '福州', '深圳', '汕头', '潮州',
+                 '南充', '乐山', '雅安', '眉山', '甘孜'],
+        'Info': ['天安门', '东郊记忆', '洪崖洞', '凤凰古城', '哈尔滨', '雪乡', '天津之眼', '厦门岛', '平潭岛', '深圳湾',
+                 '南澳岛', '潮州古城', '南充', '乐山', '雅安', '印象水街', '新都桥'],
+        'Latitude': [39.9042, 30.5728, 29.5597, 27.9483, 45.757, 45.2751, 39.1247, 24.4798, 25.5232, 22.5295, 22.4747,
+                     23.6655, 30.8373, 29.5521, 29.9805, 30.6701, 30.809],
+        'Longitude': [116.4074, 104.0668, 106.5749, 109.5996, 126.652, 126.9744, 117.2003, 118.0894, 119.7837, 113.981,
+                      114.4659, 116.6221, 106.1101, 103.7656, 103.0132, 104.1019, 102.5949],
     }
 
     df = pd.DataFrame(locations)
@@ -25,8 +31,8 @@ def create_map():
     for index, row in df.iterrows():
         folium.Marker(
             location=[row['Latitude'], row['Longitude']],
-            popup=row['Info'],
-            tooltip=row['City']
+            popup=row['City'],
+            tooltip=row['Info']
         ).add_to(m)
 
     return m
@@ -143,18 +149,110 @@ df  # <-- Draw the dataframe
 x = 10
 'x', x  # <-- Draw the string 'x' and then the value of x
 
-
 st.header("10. 引入进度条")
 'Starting a long computation...'
 
 # Add a placeholder
-latest_iteration = st.empty()
-bar = st.progress(0)
+# latest_iteration = st.empty()
+# bar = st.progress(0)
+#
+# for i in range(100):
+#     # Update the progress bar with each iteration.
+#     latest_iteration.text(f'Iteration {i + 1}')
+#     bar.progress(i + 1)
+#     time.sleep(0.1)
+#
+# '...and now we\'re done!'
 
-for i in range(100):
-    # Update the progress bar with each iteration.
-    latest_iteration.text(f'Iteration {i+1}')
-    bar.progress(i + 1)
-    time.sleep(0.1)
 
-'...and now we\'re done!'
+st.header("11. 添加数据库")
+
+# 连接MongoDB
+client = MongoClient("mongodb://localhost:27017")  # 根据实际情况修改MongoDB的连接地址和端口
+db = client["db_finance"]  # 修改为实际的数据库名称
+collection = db["my_wallet"]  # 修改为实际的集合名称
+
+# 插入数据
+# data = [
+#     {"日期": "2022-01-01", "备注": "购物", "收入支出": "支出", "一级类型": "日常", "二级类型": "食品", "金额": 100, "账户": "现金"},
+#     {"日期": "2022-01-02", "备注": "工资", "收入支出": "收入", "一级类型": "收入", "二级类型": "工资", "金额": 2000, "账户": "银行卡"},
+#     {"日期": "2022-01-03", "备注": "餐饮", "收入支出": "支出", "一级类型": "日常", "二级类型": "餐饮", "金额": 50, "账户": "支付宝"},
+#     {"日期": "2022-01-04", "备注": "交通", "收入支出": "支出", "一级类型": "日常", "二级类型": "交通", "金额": 20, "账户": "微信"},
+#     {"日期": "2022-01-05", "备注": "奖金", "收入支出": "收入", "一级类型": "收入", "二级类型": "奖金", "金额": 500, "账户": "现金"},
+# ]
+#
+# collection.insert_many(data)
+# 从MongoDB读取数据
+data = collection.find()
+
+# 将数据转换为列表形式
+data_list = list(data)
+
+# 在Streamlit应用中显示数据表格
+st.write("MongoDB 数据示例:")
+
+# 创建日期范围筛选器
+end_date = datetime.now().date()
+start_date = end_date - timedelta(days=30)  # 默认选择最近30天的数据
+selected_start_date = st.date_input("选择起始日期", value=start_date, max_value=end_date)
+selected_end_date = st.date_input("选择结束日期", value=end_date, max_value=end_date)
+
+# 创建筛选项
+accounts = list(set([item["账户"] for item in data_list]))
+accounts.insert(0, "")  # 添加一个空字符串作为默认选项
+selected_account = st.selectbox("选择账户", accounts)
+
+# 筛选数据
+filtered_data = []
+
+for item in data_list:
+    item_date = datetime.strptime(item["日期"], "%Y-%m-%d").date()
+    if selected_start_date <= item_date <= selected_end_date:
+        if selected_account and item["账户"] != selected_account:
+            continue
+        filtered_data.append(item)
+
+# 显示数据表格
+st.table(filtered_data)
+
+st.header("12. 添加账单")
+
+# 在Streamlit应用中显示表单
+st.write("手动录入账单")
+# 提取一级类型名称列表
+category_level1_options = [category["name"] for category in categories if category["level"] == 1]
+
+# 获取用户输入
+category_level1 = st.selectbox("一级类型", category_level1_options)
+
+# 根据一级类型的选择提取相应的二级类型名称列表
+for _category in categories:
+    _category.get("name", category_level1)
+category_level2_options = [category["name"] for category in categories if category["level"] == 2 and category["type"] == category_level1]
+
+category_level2 = st.selectbox("二级类型", category_level2_options)
+
+date = st.date_input("日期")
+account = st.selectbox("账户", [at for at in AccountType])
+bill_type = st.selectbox("类型", [bt for bt in BillType])
+
+amount = st.number_input("金额", value=0.0, step=0.01)
+description = st.text_input("描述")
+
+# 提交按钮
+if st.button("提交"):
+    # 创建账单对象
+    bill = {
+        "日期": str(date),
+        "账户": account,
+        "类型": bill_type,
+        "一级类型": category_level1,
+        "二级类型": category_level2,
+        "金额": amount,
+        "描述": description
+    }
+
+    # 将账单插入MongoDB
+    collection.insert_one(bill)
+
+    st.success("账单已成功录入")
