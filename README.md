@@ -20,6 +20,11 @@ pip3 freeze > requirements.txt
 pip3 freeze >> requirements.txt
 ```
 
+* 启动
+```shell
+streamlit run st-demo.py
+```
+
 ### 教程
 button：按钮
 download_button：文件下载
